@@ -1,0 +1,2267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电影票房评估系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js">
+    </script>
+    <style>
+        /* ===== 全局夜间模式变量 ===== */
+        :root {
+            --bg-body: #f1f5f9;
+            --bg-main: #ffffff;
+            --bg-sidebar: #1e293b;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --border-light: #e2e8f0;
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            --filter-bg: #ffffff;
+            --nav-hover: rgba(255,255,255,0.05);
+            --stat-hover: #f5f7fa;
+            --chart-bg: #ffffff;
+            --wordcloud-bg: #ffffff;
+            --input-border: #e0e0e0;
+        }
+
+        [data-theme="dark"] {
+            --bg-body: #0b1120;
+            --bg-main: #1e293b;
+            --bg-sidebar: #0f172a;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border-light: #334155;
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            --filter-bg: #1e293b;
+            --nav-hover: rgba(255,255,255,0.08);
+            --stat-hover: #2d3a4f;
+            --chart-bg: #1e293b;
+            --wordcloud-bg: #1e293b;
+            --input-border: #475569;
+        }
+
+        /* 应用变量 */
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.2s;
+        }
+
+        .bg-white { background-color: var(--bg-main) !important; }
+        .bg-gray-100 { background-color: var(--bg-body) !important; }
+        .bg-gray-50 { background-color: var(--bg-body) !important; }
+        .bg-slate-800 { background-color: var(--bg-sidebar) !important; }
+        .text-gray-800 { color: var(--text-primary) !important; }
+        .text-gray-600 { color: var(--text-secondary) !important; }
+        .text-gray-500 { color: var(--text-secondary) !important; }
+        .border-gray-200 { border-color: var(--border-light) !important; }
+        .border-gray-100 { border-color: var(--border-light) !important; }
+        .border-gray-300 { border-color: var(--border-light) !important; }
+        .shadow-sm { box-shadow: var(--card-shadow) !important; }
+        .filter-btn { background: var(--filter-bg); color: var(--text-secondary); }
+        .filter-btn:hover { background: var(--stat-hover); }
+        .filter-btn.bg-blue-500 { background: #3b82f6 !important; color: #fff !important; border-color: #3b82f6 !important; }
+        .stat-item:hover { background: var(--stat-hover); }
+        .stat-label { color: var(--text-secondary); }
+        .stat-value { color: var(--text-primary); }
+        .chart-box { background: var(--chart-bg); box-shadow: var(--card-shadow); }
+        .vis-sidebar { background: var(--chart-bg); box-shadow: var(--card-shadow); }
+        .wordcloud-section { background: var(--wordcloud-bg); border-color: var(--border-light); }
+        .wordcloud-section .text-gray-700 { color: var(--text-primary) !important; }
+        .wordcloud-section .text-gray-400 { color: var(--text-secondary) !important; }
+        #wordcloud-chart { background: var(--wordcloud-bg); }
+        #wordcloud-container { background: var(--wordcloud-bg); }
+        .input-wrapper input { background: var(--bg-main); color: var(--text-primary); border-color: var(--input-border); }
+        .input-wrapper input:focus { border-color: #4a90d9 !important; }
+        .chat-message.bot .message-content { background: #2d3a4f; color: #e2e8f0; }
+        .chat-message.user .message-content { background: #4a90d9; color: #fff; }
+        .movie-card { background: var(--bg-main); box-shadow: var(--card-shadow); }
+        .movie-card .card-title { color: var(--text-primary); }
+        .movie-card .card-meta { color: var(--text-secondary); }
+        .movie-card .placeholder-text { color: var(--text-secondary); }
+        .modal-content-wrapper { background: rgba(0,0,0,0.85); }
+        .modal-content-inner .text-gray-500,
+        .modal-content-inner .text-gray-400,
+        .modal-content-inner .text-gray-600,
+        .modal-content-inner .text-gray-700,
+        .modal-content-inner .text-gray-800 {
+            color: rgba(255,255,255,0.85) !important;
+        }
+        .modal-content-inner .bg-gray-50,
+        .modal-content-inner .bg-gray-100,
+        .modal-content-inner .bg-gray-200 {
+            background: rgba(255,255,255,0.12) !important;
+        }
+        .modal-content-inner .bg-blue-50 { background: rgba(59,130,246,0.2) !important; }
+        .modal-content-inner .bg-yellow-100 {
+            background: rgba(234,179,8,0.2) !important;
+            color: #fbbf24 !important;
+        }
+        .modal-content-inner .border-gray-100 { border-color: rgba(255,255,255,0.1) !important; }
+        .modal-content-inner .text-yellow-700 { color: #fbbf24 !important; }
+        .modal-content-inner .text-blue-600 { color: #60a5fa !important; }
+        .modal-content-inner .text-white/50 { color: rgba(255,255,255,0.5) !important; }
+        .modal-content-inner .text-white/40 { color: rgba(255,255,255,0.4) !important; }
+        .modal-content-inner .text-white/75 { color: rgba(255,255,255,0.75) !important; }
+
+        /* 覆盖一些难以用变量控制的元素 */
+        [data-theme="dark"] .bg-slate-700 { background-color: #334155 !important; }
+        [data-theme="dark"] .bg-slate-800 { background-color: #0f172a !important; }
+        [data-theme="dark"] .border-b-slate-700 { border-color: #334155 !important; }
+        [data-theme="dark"] .text-slate-300 { color: #cbd5e1 !important; }
+        [data-theme="dark"] .text-slate-400 { color: #94a3b8 !important; }
+
+        /* 滚动条暗色适配 */
+        [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #475569; }
+        [data-theme="dark"] ::-webkit-scrollbar-track { background: #1e293b; }
+
+        /* 保持原有其他样式 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        .movie-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .movie-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        }
+        .movie-card img { transition: transform 0.3s ease; }
+        .movie-card:hover img { transform: scale(1.03); }
+        .filter-btn {
+            transition: all 0.15s ease;
+            user-select: none;
+            cursor: pointer;
+        }
+        .filter-btn:active { transform: scale(0.95); }
+        .nav-item {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .nav-item:hover { background: var(--nav-hover); }
+        .nav-item.active { background: #334155; color: white; }
+        .nav-item.inactive { color: #94a3b8; }
+        .chart-box {
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .stat-item {
+            padding: 5px 8px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+        .stat-item:last-child { border-bottom: none; }
+        .stat-label {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%;
+        }
+        .stat-value { font-weight: 600; flex-shrink: 0; }
+        .vis-container {
+            display: flex;
+            gap: 16px;
+            height: 100%;
+            min-height: 480px;
+            width: 100%;
+        }
+        .vis-charts-wrapper {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            padding-bottom: 12px;
+        }
+        .vis-charts-inner {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .vis-charts-inner .chart-box { flex: 1; }
+        .vis-charts-inner .chart-box:first-child { flex: 2; }
+        .vis-charts-inner .chart-box:last-child { flex: 1; }
+        .chart-box .chart-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .vis-sidebar {
+            width: 35%;
+            min-width: 120px;
+            max-width: 50%;
+            flex-shrink: 0;
+            border-radius: 8px;
+            padding: 14px 12px;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        .sidebar-resizer {
+            position: absolute;
+            left: -5px;
+            top: 0;
+            bottom: 0;
+            width: 14px;
+            cursor: ew-resize;
+            z-index: 10;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .sidebar-resizer::before {
+            content: '';
+            width: 3px;
+            height: 30px;
+            background: #d1d5db;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+        .sidebar-resizer:hover::before,
+        .sidebar-resizer.active::before {
+            background: #4361ee;
+            height: 50px;
+        }
+        .sidebar-resizer::after {
+            content: '...';
+            position: absolute;
+            left: 2px;
+            font-size: 11px;
+            color: #d1d5db;
+            letter-spacing: 1px;
+        }
+        .sidebar-resizer:hover::after { color: #4361ee; }
+        .vis-sidebar .title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #4361ee;
+            flex-shrink: 0;
+        }
+        .vis-sidebar .stat-list-wrap {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+        .vis-sidebar .stat-list-wrap::-webkit-scrollbar { width: 3px; }
+        .vis-sidebar .stat-list-wrap::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        .vis-sidebar .stat-list-wrap::-webkit-scrollbar-track { background: #f5f5f5; }
+        .vis-sidebar .stat-item { padding: 3px 6px; font-size: 12px; }
+        .vis-sidebar .stat-label { font-size: 12px; }
+        .vis-sidebar .stat-value { font-size: 12px; }
+
+        #trend-chart, #line-chart, #genre-pie-chart, #genre-bar-chart, #rating-chart, #revenue-chart, #revenue-line-chart {
+            width: 100%;
+            height: 100%;
+            min-height: 240px;
+        }
+        #line-chart, #genre-bar-chart, #revenue-line-chart { min-height: 150px; }
+        .chart-box {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-box .chart-title { flex-shrink: 0; }
+        .chart-box > div:not(.chart-title) { flex: 1; min-height: 0; }
+
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: scale(0.92) translateY(30px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes modalSlideOut {
+            from { opacity: 1; transform: scale(1) translateY(0); }
+            to { opacity: 0; transform: scale(0.92) translateY(30px); }
+        }
+        #movie-modal { animation: modalSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        #movie-modal.closing { animation: modalSlideOut 0.25s ease-in forwards; }
+        .modal-content-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.85);
+        }
+        .modal-background-blur {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-size: cover;
+            background-position: center;
+            filter: blur(30px) brightness(0.35);
+            transform: scale(1.1);
+            z-index: 0;
+            transition: background-image 0.5s ease;
+        }
+        .modal-poster-container {
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+            width: 170px;
+        }
+        .modal-poster-container img {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            aspect-ratio: 2/3;
+            object-fit: cover;
+        }
+        .modal-content-inner {
+            position: relative;
+            z-index: 1;
+            padding: 22px 26px;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-info-wrapper { display: flex; gap: 24px; align-items: flex-start; }
+        .modal-info-right { flex: 1; min-width: 0; }
+        .modal-close-btn {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(4px);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        .modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(90deg);
+        }
+        .modal-title {
+            color: #ffffff;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+        }
+        .wordcloud-section {
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-top: 14px;
+            flex-shrink: 0;
+            border: 1px solid var(--border-light);
+        }
+        .actor-tag {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(4px);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .genre-tag {
+            background: rgba(59, 130, 246, 0.2);
+            backdrop-filter: blur(4px);
+            color: #93c5fd;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(4px);
+            border-radius: 10px;
+            padding: 10px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            display: inline-block;
+        }
+        .stat-card .label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card .value { color: #ffffff; font-size: 18px; font-weight: 700; }
+        .rating-badge {
+            background: rgba(234, 179, 8, 0.2);
+            backdrop-filter: blur(4px);
+            color: #fbbf24;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid rgba(234, 179, 8, 0.15);
+        }
+        .info-tag {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(4px);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: inline-block;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        #wordcloud-chart {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 4px 10px;
+            padding: 4px 6px;
+        }
+        #wordcloud-container {
+            min-height: 120px !important;
+            background: var(--wordcloud-bg);
+        }
+        .wordcloud-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: default;
+            white-space: nowrap;
+            line-height: 1.3;
+        }
+        .wordcloud-tag:hover {
+            transform: scale(1.3) !important;
+            color: #4361ee !important;
+            text-shadow: 0 2px 20px rgba(67, 97, 238, 0.4) !important;
+        }
+        .modal-content-inner::-webkit-scrollbar { width: 4px; }
+        .modal-content-inner::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        .modal-content-inner::-webkit-scrollbar-track { background: transparent; }
+        .modal-content-inner .fade-in-item {
+            animation: contentFadeIn 0.5s ease forwards;
+            opacity: 0;
+        }
+        .modal-content-inner .fade-in-item:nth-child(1) { animation-delay: 0.05s; }
+        .modal-content-inner .fade-in-item:nth-child(2) { animation-delay: 0.10s; }
+        .modal-content-inner .fade-in-item:nth-child(3) { animation-delay: 0.15s; }
+        .modal-content-inner .fade-in-item:nth-child(4) { animation-delay: 0.20s; }
+        .modal-content-inner .fade-in-item:nth-child(5) { animation-delay: 0.25s; }
+        .modal-content-inner .fade-in-item:nth-child(6) { animation-delay: 0.30s; }
+
+        @keyframes contentFadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .nav-icon { margin-right: 10px; font-size: 18px; }
+
+        @keyframes messageSlideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        .chat-message.user {
+            flex-direction: row-reverse;
+        }
+        .chat-message.user .message-avatar {
+            background: #4a90d9;
+            color: #fff;
+        }
+        .chat-message.user .message-content {
+            background: #4a90d9;
+            color: #fff;
+        }
+        #recommendGrid .movie-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        #recommendGrid .movie-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        #recommendGrid .movie-card img {
+            width: 100%;
+            height: 210px;
+            object-fit: cover;
+            background: #f0f0f0;
+        }
+        #recommendGrid .movie-card .card-info {
+            padding: 8px 10px;
+        }
+        #recommendGrid .movie-card .card-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 3px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #recommendGrid .movie-card .card-meta {
+            font-size: 11px;
+            display: flex;
+            gap: 10px;
+        }
+        #recommendGrid .movie-card .card-rating {
+            color: #f5a623;
+        }
+        .send-btn:hover {
+            background: #357abd;
+        }
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #888;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite both;
+        }
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        .no-results .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .agent-container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 500px;
+            padding: 0 10px;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 10px 12px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 0;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 12px;
+            animation: messageSlideIn 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .chat-message.bot .message-avatar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .chat-message.user .message-avatar {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .recommend-results {
+            display: none;
+            margin-top: 8px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 12px;
+            flex-shrink: 0;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .results-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .results-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: var(--stat-hover);
+            padding: 2px 12px;
+            border-radius: 12px;
+        }
+
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .chat-input-area {
+            padding: 12px 0 0;
+            border-top: 1px solid var(--border-light);
+            margin-top: 12px;
+            flex-shrink: 0;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-wrapper input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 2px solid var(--input-border);
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            background: var(--bg-main);
+            color: var(--text-primary);
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: #4a90d9;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.1s;
+            flex-shrink: 0;
+        }
+
+        .input-hint {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* 夜间切换按钮 - 放在header */
+        .theme-toggle {
+            background: var(--bg-body);
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .theme-toggle:hover {
+            background: var(--stat-hover);
+            transform: scale(0.97);
+        }
+        .theme-toggle svg {
+            width: 18px;
+            height: 18px;
+        }
+        [data-theme="dark"] .theme-toggle .sun-icon { display: inline; }
+        [data-theme="dark"] .theme-toggle .moon-icon { display: none; }
+        [data-theme="light"] .theme-toggle .sun-icon { display: none; }
+        [data-theme="light"] .theme-toggle .moon-icon { display: inline; }
+        .sun-icon, .moon-icon { vertical-align: middle; }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen overflow-hidden flex font-sans">
+
+    <aside class="w-48 bg-slate-800 text-white flex flex-col shadow-lg flex-shrink-0">
+        <div class="p-6 text-xl font-bold border-b border-slate-700 flex items-center gap-2">
+            电影系统
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <div id="nav-overview" class="nav-item active bg-slate-700 p-3 rounded font-semibold flex items-center gap-2">
+                <span class="nav-icon"></span> 电影总览
+            </div>
+            <div id="nav-chart" class="nav-item inactive p-3 rounded flex items-center gap-2">
+                <span class="nav-icon"></span> 上映趋势
+            </div>
+            <div id="nav-revenue" class="nav-item inactive p-3 rounded flex items-center gap-2">
+                <span class="nav-icon"></span> 票房趋势
+            </div>
+            <div id="nav-genre" class="nav-item inactive p-3 rounded flex items-center gap-2">
+                <span class="nav-icon"></span> 类型统计
+            </div>
+            <div id="nav-rating" class="nav-item inactive p-3 rounded flex items-center gap-2">
+                <span class="nav-icon"></span> 评分分布
+            </div>
+            <div id="nav-agent" class="nav-item inactive p-3 rounded flex items-center gap-2">
+                <span class="nav-icon"></span> 智能助手
+            </div>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-white">
+        <header class="p-6 border-b border-gray-200 flex justify-between items-center bg-white flex-shrink-0">
+            <h1 class="text-2xl font-bold text-gray-800" id="page-title">电影总览</h1>
+            <div class="flex items-center gap-4">
+                <span id="result-count" class="text-sm text-gray-500"></span>
+                <button class="theme-toggle" id="themeToggle" aria-label="切换夜间模式">
+                    <span class="moon-icon">🌙</span>
+                    <span class="sun-icon">☀️</span>
+                    <span id="themeLabel">夜间</span>
+                </button>
+            </div>
+        </header>
+
+        <div id="filter-bar" class="p-6 bg-white border-b border-gray-100 space-y-4 shadow-sm flex-shrink-0 overflow-y-auto max-h-[200px]">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="font-medium text-gray-600 text-sm w-18 flex-shrink-0">类型选择：</span>
+                <div id="genre-container" class="flex flex-wrap gap-1.5 py-1 flex-1"></div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="font-medium text-gray-600 text-sm w-18 flex-shrink-0">年份选择：</span>
+                <div id="year-container" class="flex flex-wrap gap-1.5 py-1 flex-1"></div>
+            </div>
+            <div class="flex items-center gap-4 pt-2 border-t border-gray-100 mt-2">
+                <span class="font-medium text-gray-600 text-sm w-18 flex-shrink-0">排序方式：</span>
+                <div class="flex gap-2">
+                    <button id="sort-rating" class="px-4 py-1.5 text-sm rounded-full border bg-black text-white border-black transition-colors">按评分</button>
+                    <button id="sort-revenue" class="px-4 py-1.5 text-sm rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">按票房</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 bg-gray-50" id="scroll-container">
+
+            <div id="movie-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 justify-items-center"></div>
+
+            <div id="chart-view" class="hidden" style="height: 100%;">
+                <div class="vis-container">
+                    <div class="vis-charts-wrapper">
+                        <div class="vis-charts-inner">
+                            <div class="chart-box">
+                                <div class="chart-title">年份电影上映趋势（柱状图）</div>
+                                <div id="trend-chart"></div>
+                            </div>
+                            <div class="chart-box">
+                                <div class="chart-title">年份电影上映趋势（折线图）</div>
+                                <div id="line-chart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="vis-sidebar" id="sidebar-trend">
+                        <div class="sidebar-resizer" id="resizer-trend"></div>
+                        <div class="title">年份数量</div>
+                        <div class="stat-list-wrap" id="stat-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="revenue-view" class="hidden" style="height: 100%;">
+                <div class="vis-container">
+                    <div class="vis-charts-wrapper">
+                        <div class="vis-charts-inner">
+                            <div class="chart-box">
+                                <div class="chart-title">年份平均票房趋势（柱状图）</div>
+                                <div id="revenue-chart"></div>
+                            </div>
+                            <div class="chart-box">
+                                <div class="chart-title">年份平均票房趋势（折线图）</div>
+                                <div id="revenue-line-chart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="vis-sidebar" id="sidebar-revenue">
+                        <div class="sidebar-resizer" id="resizer-revenue"></div>
+                        <div class="title">年份票房统计</div>
+                        <div class="stat-list-wrap" id="revenue-stat-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="genre-view" class="hidden" style="height: 100%;">
+                <div class="vis-container">
+                    <div class="vis-charts-wrapper">
+                        <div class="vis-charts-inner">
+                            <div class="chart-box">
+                                <div class="chart-title">电影类型分布（环形图）</div>
+                                <div id="genre-pie-chart"></div>
+                            </div>
+                            <div class="chart-box">
+                                <div class="chart-title">电影类型分布（柱状图）</div>
+                                <div id="genre-bar-chart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="vis-sidebar" id="sidebar-genre">
+                        <div class="sidebar-resizer" id="resizer-genre"></div>
+                        <div class="title">全部类型统计</div>
+                        <div class="stat-list-wrap" id="genre-stat-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="rating-view" class="hidden" style="height: 100%;">
+                <div class="vis-container">
+                    <div class="vis-charts-wrapper">
+                        <div class="vis-charts-inner" style="width: 100%;">
+                            <div class="chart-box" style="flex: 1;">
+                                <div class="chart-title">电影评分分布（按0.5分档）</div>
+                                <div id="rating-chart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="vis-sidebar" id="sidebar-rating">
+                        <div class="sidebar-resizer" id="resizer-rating"></div>
+                        <div class="title">评分统计</div>
+                        <div class="stat-list-wrap" id="rating-stat-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="agent-view" class="hidden" style="height: 100%;">
+                <div class="agent-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-message bot">
+                            <div class="message-avatar">AI</div>
+                            <div class="message-content">
+                                <p>你好！我是电影推荐助手</p>
+                                <p style="margin-top: 8px; color: #888; font-size: 14px;">
+                                    你可以这样问我：<br>
+                                    - "预测一下2027年动作电影的票房"<br>
+                                    - "给我找一些 2020 年以后评分 8 分以上的动作片"<br>
+                                    - "最近有什么高票房的科幻电影"<br>
+                                    - "推荐几部好看的喜剧电影"
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recommend-results" id="recommendResults">
+                        <div class="results-header">
+                            <span class="results-title">推荐结果</span>
+                            <span class="results-count" id="resultsCount"></span>
+                        </div>
+                        <div class="movie-grid" id="recommendGrid"></div>
+                    </div>
+
+                    <div class="chat-input-area">
+                        <div class="input-wrapper">
+                            <input type="text" id="agentInput" placeholder="输入你想看的电影类型或需求..."
+                                   onkeydown="if(event.keyCode===13) sendAgentMessage()"
+                                   onfocus="this.style.borderColor='#4a90d9'"
+                                   onblur="this.style.borderColor='var(--input-border)'">
+                            <button class="send-btn" onclick="sendAgentMessage()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="input-hint">
+                            支持类型、年份、评分、票房、关键词等多种条件组合
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="loading-more" class="w-full text-center text-gray-400 py-6 hidden">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-blue-500"></div>
+                <span class="ml-2">加载中...</span>
+            </div>
+            <div id="no-more" class="w-full text-center text-gray-400 py-6 hidden">— 已加载全部电影 —</div>
+        </div>
+    </main>
+
+    <div id="movie-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4" onclick="if(event.target===this) closeModal()">
+        <div class="modal-content-wrapper w-full max-w-5xl max-h-[92vh] overflow-hidden shadow-2xl">
+            <div id="modal-bg-blur" class="modal-background-blur"></div>
+            <div class="modal-content-inner relative z-10 overflow-y-auto max-h-[92vh]">
+                <div class="flex justify-between items-start mb-3 flex-shrink-0 fade-in-item">
+                    <div>
+                        <h2 id="modal-title" class="text-2xl font-bold modal-title">电影详情</h2>
+                        <p id="modal-original-title" class="text-sm text-white/50 mt-0.5"></p>
+                    </div>
+                    <button onclick="closeModal()" class="modal-close-btn p-2 rounded-full transition-all duration-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="modal-loading" class="flex justify-center items-center py-20">
+                    <div class="animate-spin rounded-full h-12 w-12 border-4 border-white/30 border-t-white"></div>
+                </div>
+                <div id="modal-content" class="hidden">
+                    <div class="modal-info-wrapper fade-in-item">
+                        <div class="modal-poster-container">
+                            <img id="modal-poster" src="" alt="海报" onerror="this.style.display='none';document.getElementById('poster-placeholder').style.display='flex'">
+                            <div id="poster-placeholder" class="w-full aspect-[2/3] bg-white/10 rounded-xl flex items-center justify-center text-white/30 text-sm hidden" style="display:none;">无封面</div>
+                        </div>
+                        <div class="modal-info-right">
+                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                <span id="modal-year" class="info-tag"></span>
+                                <span id="modal-runtime" class="info-tag"></span>
+                                <span id="modal-rating" class="rating-badge">★ 0</span>
+                                <span id="modal-votes" class="text-sm text-white/40">投票数: 0</span>
+                            </div>
+                            <div id="modal-genres" class="flex flex-wrap gap-1.5 mb-2"></div>
+                            <div class="mb-2">
+                                <p id="modal-overview" class="text-sm text-white/75 leading-relaxed max-h-24 overflow-y-auto"></p>
+                            </div>
+                            <div class="mb-2">
+                                <div id="modal-actors" class="flex flex-wrap gap-1.5"></div>
+                            </div>
+                            <div>
+                                <div class="stat-card">
+                                    <div class="label">票房</div>
+                                    <div id="modal-revenue" class="value">$0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="wordcloud-section fade-in-item">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-sm font-semibold text-gray-700">关键词词云</span>
+                            <span class="text-xs text-gray-400">AI生成</span>
+                        </div>
+                        <div id="wordcloud-container" class="w-full rounded-lg overflow-hidden relative" style="background:var(--wordcloud-bg);">
+                            <div id="wordcloud-loading" class="absolute inset-0 flex items-center justify-center" style="background:var(--wordcloud-bg);">
+                                <div class="animate-pulse text-gray-400 text-sm">生成关键词中...</div>
+                            </div>
+                            <div id="wordcloud-chart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:5000';
+
+        // ===== 夜间模式切换 =====
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            document.getElementById('themeLabel').textContent = newTheme === 'dark' ? '日间' : '夜间';
+            // 保存偏好
+            localStorage.setItem('theme', newTheme);
+            // 重新调整图表颜色（简略重绘，由resize触发）
+            setTimeout(() => {
+                if (window._chartInstances) {
+                    window._chartInstances.forEach(chart => { try { chart.resize(); } catch(e) {} });
+                }
+            }, 100);
+        }
+
+        // 初始化主题
+        function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = saved || (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+            document.getElementById('themeLabel').textContent = theme === 'dark' ? '日间' : '夜间';
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        }
+
+        // 其余原有代码（保持不变）
+        let state = { genres: [], years: [], sort: 'rating' };
+        let currentPage = 1;
+        let totalPages = 1;
+        let isLoading = false;
+        let hasMore = true;
+        let totalMovies = 0;
+
+        function switchNav(activeId) {
+            const navs = ['nav-overview', 'nav-chart', 'nav-revenue', 'nav-genre', 'nav-rating', 'nav-agent'];
+            navs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (id === activeId) {
+                        el.className = "nav-item active bg-slate-700 p-3 rounded font-semibold flex items-center gap-2";
+                    } else {
+                        el.className = "nav-item inactive p-3 rounded flex items-center gap-2";
+                    }
+                }
+            });
+        }
+
+        function initSidebarResizer(sidebarId, resizerId) {
+            const sidebar = document.getElementById(sidebarId);
+            const resizer = document.getElementById(resizerId);
+            if (!sidebar || !resizer) return;
+            let isDragging = false, startX = 0, startWidth = 0;
+            function startDrag(e) {
+                isDragging = true;
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                if (clientX === undefined) return;
+                startX = clientX;
+                startWidth = sidebar.offsetWidth;
+                resizer.classList.add('active');
+                document.body.style.userSelect = 'none';
+                document.body.style.cursor = 'ew-resize';
+                e.preventDefault();
+            }
+            function onDrag(e) {
+                if (!isDragging) return;
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                if (clientX === undefined) return;
+                const delta = startX - clientX;
+                const containerWidth = sidebar.parentElement.offsetWidth;
+                let newWidth = startWidth + delta;
+                const maxWidth = containerWidth * 0.5;
+                newWidth = Math.max(120, Math.min(maxWidth, newWidth));
+                sidebar.style.width = newWidth + 'px';
+                setTimeout(() => {
+                    if (window._chartInstances) {
+                        window._chartInstances.forEach(chart => { try { chart.resize(); } catch(e) {} });
+                    }
+                }, 50);
+                e.preventDefault();
+            }
+            function endDrag() {
+                isDragging = false;
+                resizer.classList.remove('active');
+                document.body.style.userSelect = '';
+                document.body.style.cursor = '';
+            }
+            resizer.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', endDrag);
+            resizer.addEventListener('touchstart', startDrag, { passive: false });
+            document.addEventListener('touchmove', onDrag, { passive: false });
+            document.addEventListener('touchend', endDrag);
+        }
+
+        document.getElementById('nav-overview').addEventListener('click', function() {
+            document.getElementById('movie-list').classList.remove('hidden');
+            document.getElementById('filter-bar').style.display = '';
+            document.getElementById('chart-view').classList.add('hidden');
+            document.getElementById('revenue-view').classList.add('hidden');
+            document.getElementById('genre-view').classList.add('hidden');
+            document.getElementById('rating-view').classList.add('hidden');
+            document.getElementById('agent-view').classList.add('hidden');
+            switchNav('nav-overview');
+            document.getElementById('page-title').textContent = '电影总览';
+            document.getElementById('result-count').style.display = '';
+        });
+
+        document.getElementById('nav-chart').addEventListener('click', function() {
+            document.getElementById('movie-list').classList.add('hidden');
+            document.getElementById('filter-bar').style.display = 'none';
+            document.getElementById('chart-view').classList.remove('hidden');
+            document.getElementById('revenue-view').classList.add('hidden');
+            document.getElementById('genre-view').classList.add('hidden');
+            document.getElementById('rating-view').classList.add('hidden');
+            document.getElementById('agent-view').classList.add('hidden');
+            switchNav('nav-chart');
+            document.getElementById('page-title').textContent = '上映趋势';
+            document.getElementById('result-count').style.display = 'none';
+            setTimeout(() => loadChartData(), 100);
+        });
+
+        document.getElementById('nav-revenue').addEventListener('click', function() {
+            document.getElementById('movie-list').classList.add('hidden');
+            document.getElementById('filter-bar').style.display = 'none';
+            document.getElementById('chart-view').classList.add('hidden');
+            document.getElementById('revenue-view').classList.remove('hidden');
+            document.getElementById('genre-view').classList.add('hidden');
+            document.getElementById('rating-view').classList.add('hidden');
+            document.getElementById('agent-view').classList.add('hidden');
+            switchNav('nav-revenue');
+            document.getElementById('page-title').textContent = '票房趋势';
+            document.getElementById('result-count').style.display = 'none';
+            setTimeout(() => loadRevenueData(), 100);
+        });
+
+        document.getElementById('nav-genre').addEventListener('click', function() {
+            document.getElementById('movie-list').classList.add('hidden');
+            document.getElementById('filter-bar').style.display = 'none';
+            document.getElementById('chart-view').classList.add('hidden');
+            document.getElementById('revenue-view').classList.add('hidden');
+            document.getElementById('genre-view').classList.remove('hidden');
+            document.getElementById('rating-view').classList.add('hidden');
+            document.getElementById('agent-view').classList.add('hidden');
+            switchNav('nav-genre');
+            document.getElementById('page-title').textContent = '类型统计';
+            document.getElementById('result-count').style.display = 'none';
+            setTimeout(() => loadGenreData(), 100);
+        });
+
+        document.getElementById('nav-rating').addEventListener('click', function() {
+            document.getElementById('movie-list').classList.add('hidden');
+            document.getElementById('filter-bar').style.display = 'none';
+            document.getElementById('chart-view').classList.add('hidden');
+            document.getElementById('revenue-view').classList.add('hidden');
+            document.getElementById('genre-view').classList.add('hidden');
+            document.getElementById('rating-view').classList.remove('hidden');
+            document.getElementById('agent-view').classList.add('hidden');
+            switchNav('nav-rating');
+            document.getElementById('page-title').textContent = '评分分布';
+            document.getElementById('result-count').style.display = 'none';
+            setTimeout(() => loadRatingData(), 100);
+        });
+
+        document.getElementById('nav-agent').addEventListener('click', function() {
+            document.getElementById('movie-list').classList.add('hidden');
+            document.getElementById('filter-bar').style.display = 'none';
+            document.getElementById('chart-view').classList.add('hidden');
+            document.getElementById('revenue-view').classList.add('hidden');
+            document.getElementById('genre-view').classList.add('hidden');
+            document.getElementById('rating-view').classList.add('hidden');
+            document.getElementById('agent-view').classList.remove('hidden');
+            switchNav('nav-agent');
+            document.getElementById('page-title').textContent = '智能助手';
+            document.getElementById('result-count').style.display = 'none';
+            setTimeout(() => {
+                document.getElementById('agentInput')?.focus();
+            }, 200);
+        });
+
+        async function loadChartData() {
+            try {
+                const res = await fetch(`${API_BASE}/api/year-trend`);
+                const data = await res.json();
+                if (data.code === 200) { renderCharts(data.data); renderStats(data.data); }
+            } catch (error) { console.error('加载数据失败:', error); }
+        }
+
+        function renderCharts(data) {
+            const years = data.map(item => item.year);
+            const counts = data.map(item => item.count);
+            const maxVal = Math.max(...counts);
+
+            const barDom = document.getElementById('trend-chart');
+            if (barDom) {
+                barDom.style.height = '100%';
+                const barChart = echarts.init(barDom);
+                barChart.setOption({
+                    tooltip: { trigger: 'axis', formatter: function(params) {
+                        const p = params[0];
+                        return p.name + '年<br/>电影数量：<strong>' + p.value + '</strong> 部';
+                    }},
+                    grid: { left: 55, right: 25, top: 10, bottom: 55 },
+                    xAxis: { type: 'category', data: years, axisLabel: { fontSize: 11, interval: 0, rotate: 45 } },
+                    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }, name: '数量', nameTextStyle: { fontSize: 11 } },
+                    dataZoom: [{ type: 'slider', start: 0, end: 100, height: 24, bottom: 0, borderColor: '#ccc', fillerColor: 'rgba(67, 97, 238, 0.2)', handleStyle: { color: '#4361ee' } }],
+                    series: [{
+                        type: 'bar',
+                        data: counts.map(value => ({
+                            value: value,
+                            itemStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: value === maxVal ? '#1a3a8a' : '#4361ee' },
+                                    { offset: 0.5, color: value > maxVal * 0.6 ? '#4a7cf7' : '#6a9cf7' },
+                                    { offset: 1, color: value > maxVal * 0.3 ? '#8ab8fa' : '#b8d4fa' }
+                                ]),
+                                borderRadius: [3, 3, 0, 0]
+                            }
+                        })),
+                        barWidth: '30%',
+                        animationDuration: 1200,
+                        animationEasing: 'cubicOut',
+                        animationDelay: function(idx) { return idx * 15; },
+                        label: { show: true, position: 'top', fontSize: 9, color: '#888', formatter: function(p) { return p.value > 0 ? p.value : ''; } }
+                    }]
+                });
+                const ro = new ResizeObserver(() => barChart.resize());
+                ro.observe(barDom);
+                barChart._resizeObserver = ro;
+                if (!window._chartInstances) window._chartInstances = [];
+                window._chartInstances.push(barChart);
+            }
+
+            const lineDom = document.getElementById('line-chart');
+            if (lineDom) {
+                lineDom.style.height = '100%';
+                const lineChart = echarts.init(lineDom);
+                lineChart.setOption({
+                    tooltip: { trigger: 'axis', formatter: function(params) {
+                        const p = params[0];
+                        return p.name + '年<br/>电影数量：<strong>' + p.value + '</strong> 部';
+                    }},
+                    grid: { left: 55, right: 25, top: 10, bottom: 55 },
+                    xAxis: { type: 'category', data: years, axisLabel: { fontSize: 10, interval: 0, rotate: 45 } },
+                    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }, name: '数量', nameTextStyle: { fontSize: 11 } },
+                    dataZoom: [{ type: 'slider', start: 0, end: 100, height: 24, bottom: 0, borderColor: '#ccc', fillerColor: 'rgba(67, 97, 238, 0.2)', handleStyle: { color: '#4361ee' } }],
+                    series: [{
+                        type: 'line', data: counts, smooth: true,
+                        lineStyle: { color: '#4361ee', width: 2 },
+                        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(67, 97, 238, 0.3)' }, { offset: 1, color: 'rgba(67, 97, 238, 0.02)' }] } },
+                        symbol: 'circle', symbolSize: 4, itemStyle: { color: '#4361ee' },
+                        animationDuration: 1500, animationEasing: 'cubicOut'
+                    }]
+                });
+                const ro = new ResizeObserver(() => lineChart.resize());
+                ro.observe(lineDom);
+                lineChart._resizeObserver = ro;
+                window._chartInstances.push(lineChart);
+            }
+        }
+
+        function renderStats(data) {
+            const sorted = [...data].sort((a, b) => b.year - a.year);
+            const container = document.getElementById('stat-list');
+            container.innerHTML = '';
+            sorted.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'stat-item';
+                div.innerHTML = '<span class="stat-label">' + item.year + ' 年</span><span class="stat-value">' + item.count + ' 部</span>';
+                container.appendChild(div);
+            });
+        }
+
+        async function loadRevenueData() {
+            try {
+                const res = await fetch(`${API_BASE}/api/revenue-trend`);
+                const data = await res.json();
+                if (data.code === 200) {
+                    renderRevenueCharts(data.data);
+                    renderRevenueStats(data.data);
+                }
+            } catch (error) { console.error('加载票房数据失败:', error); }
+        }
+
+        function renderRevenueCharts(data) {
+            const years = data.map(item => item.year);
+            const avgRevenues = data.map(item => item.avg_revenue);
+            const maxVal = Math.max(...avgRevenues);
+
+            const barDom = document.getElementById('revenue-chart');
+            if (barDom) {
+                barDom.style.height = '100%';
+                const barChart = echarts.init(barDom);
+                barChart.setOption({
+                    tooltip: {
+                        trigger: 'axis',
+                        formatter: function(params) {
+                            const p = params[0];
+                            if (!p.value || p.value === 0) return p.name + '年<br/>暂无票房数据';
+                            const idx = p.dataIndex;
+                            const item = data[idx];
+                            return p.name + '年<br/>平均票房：<strong>$' + (p.value / 1000000).toFixed(2) + 'M</strong><br/>电影数量：' + item.movie_count + '部';
+                        }
+                    },
+                    grid: { left: 85, right: 25, top: 10, bottom: 55 },
+                    xAxis: {
+                        type: 'category',
+                        data: years,
+                        axisLabel: { fontSize: 11, interval: 0, rotate: 45 }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
+                        name: '平均票房($)',
+                        nameTextStyle: { fontSize: 11 },
+                        axisLabel: {
+                            formatter: function(v) {
+                                if (v === 0) return '$0';
+                                return '$' + (v / 1000000).toFixed(1) + 'M';
+                            }
+                        }
+                    },
+                    dataZoom: [{
+                        type: 'slider',
+                        start: 0,
+                        end: 100,
+                        height: 24,
+                        bottom: 0,
+                        borderColor: '#ccc',
+                        fillerColor: 'rgba(16, 185, 129, 0.2)',
+                        handleStyle: { color: '#10b981' }
+                    }],
+                    series: [{
+                        type: 'bar',
+                        data: avgRevenues.map(value => ({
+                            value: value,
+                            itemStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: value === maxVal && maxVal > 0 ? '#065f46' : '#10b981' },
+                                    { offset: 0.5, color: value > maxVal * 0.5 ? '#34d399' : '#6ee7b7' },
+                                    { offset: 1, color: '#d1fae5' }
+                                ]),
+                                borderRadius: [3, 3, 0, 0]
+                            }
+                        })),
+                        barWidth: '30%',
+                        animationDuration: 1200,
+                        animationEasing: 'cubicOut',
+                        animationDelay: function(idx) { return idx * 15; },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            fontSize: 9,
+                            color: '#888',
+                            formatter: function(p) {
+                                return p.value > 0 ? '$' + (p.value / 1000000).toFixed(1) + 'M' : '';
+                            }
+                        }
+                    }]
+                });
+                const ro = new ResizeObserver(() => barChart.resize());
+                ro.observe(barDom);
+                barChart._resizeObserver = ro;
+                if (!window._chartInstances) window._chartInstances = [];
+                window._chartInstances.push(barChart);
+            }
+
+            const lineDom = document.getElementById('revenue-line-chart');
+            if (lineDom) {
+                lineDom.style.height = '100%';
+                const lineChart = echarts.init(lineDom);
+                lineChart.setOption({
+                    tooltip: {
+                        trigger: 'axis',
+                        formatter: function(params) {
+                            const p = params[0];
+                            if (!p.value || p.value === 0) return p.name + '年<br/>暂无票房数据';
+                            return p.name + '年<br/>平均票房：<strong>$' + (p.value / 1000000).toFixed(2) + 'M</strong>';
+                        }
+                    },
+                    grid: { left: 85, right: 25, top: 10, bottom: 55 },
+                    xAxis: { type: 'category', data: years, axisLabel: { fontSize: 10, interval: 0, rotate: 45 } },
+                    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }, name: '平均票房($)', nameTextStyle: { fontSize: 11 }, axisLabel: { formatter: function(v) { return v > 0 ? '$' + (v / 1000000).toFixed(1) + 'M' : '$0'; } } },
+                    dataZoom: [{ type: 'slider', start: 0, end: 100, height: 24, bottom: 0, borderColor: '#ccc', fillerColor: 'rgba(16, 185, 129, 0.2)', handleStyle: { color: '#10b981' } }],
+                    series: [{
+                        type: 'line',
+                        data: avgRevenues,
+                        smooth: true,
+                        lineStyle: { color: '#10b981', width: 2 },
+                        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(16, 185, 129, 0.3)' }, { offset: 1, color: 'rgba(16, 185, 129, 0.02)' }] } },
+                        symbol: 'circle',
+                        symbolSize: 4,
+                        itemStyle: { color: '#10b981' },
+                        animationDuration: 1500,
+                        animationEasing: 'cubicOut',
+                        label: {
+                            show: true,
+                            fontSize: 9,
+                            color: '#888',
+                            formatter: function(p) {
+                                return p.value > 0 ? '$' + (p.value / 1000000).toFixed(1) + 'M' : '';
+                            }
+                        }
+                    }]
+                });
+                const ro = new ResizeObserver(() => lineChart.resize());
+                ro.observe(lineDom);
+                lineChart._resizeObserver = ro;
+                if (!window._chartInstances) window._chartInstances = [];
+                window._chartInstances.push(lineChart);
+            }
+        }
+
+        function renderRevenueStats(data) {
+            const sorted = [...data].sort((a, b) => b.year - a.year);
+            const container = document.getElementById('revenue-stat-list');
+            container.innerHTML = '';
+            sorted.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'stat-item';
+                const revenueStr = item.avg_revenue > 0 ? '$' + (item.avg_revenue / 1000000).toFixed(2) + 'M' : '暂无票房';
+                div.innerHTML = '<span class="stat-label">' + item.year + ' 年 (' + item.movie_count + '部)</span><span class="stat-value">' + revenueStr + '</span>';
+                container.appendChild(div);
+            });
+        }
+
+        async function loadGenreData() {
+            try {
+                const res = await fetch(`${API_BASE}/api/genre-distribution`);
+                const data = await res.json();
+                if (data.code === 200) {
+                    renderGenreCharts(data.data);
+                    renderGenreStats(data.data);
+                }
+            } catch (error) { console.error('加载类型数据失败:', error); }
+        }
+
+        function renderGenreCharts(data) {
+            const allGenres = data.map(item => item.genre);
+            const allCounts = data.map(item => item.count);
+
+            const yellowColors = ['#fef3c7', '#fde68a', '#fcd34d', '#fbbf24', '#f59e0b', '#d97706', '#b45309', '#92400e', '#78350f'];
+
+            const pieDom = document.getElementById('genre-pie-chart');
+            if (pieDom) {
+                pieDom.style.height = '100%';
+                const pieChart = echarts.init(pieDom);
+                pieChart.setOption({
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: function(params) {
+                            return params.name + '<br/>电影数量：<strong>' + params.value + '</strong> 部<br/>占比：<strong>' + params.percent + '%</strong>';
+                        }
+                    },
+                    color: yellowColors,
+                    legend: {
+                        orient: 'vertical',
+                        right: '2%',
+                        top: 'center',
+                        itemWidth: 12,
+                        itemHeight: 12,
+                        textStyle: { fontSize: 10 }
+                    },
+                    series: [{
+                        type: 'pie',
+                        radius: ['30%', '72%'],
+                        center: ['38%', '50%'],
+                        avoidLabelOverlap: true,
+                        itemStyle: {
+                            borderRadius: 5,
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        },
+                        label: {
+                            show: true,
+                            fontSize: 10,
+                            fontWeight: '500',
+                            formatter: function(params) {
+                                return params.percent > 1.5 ? params.name : '';
+                            }
+                        },
+                        labelLine: { length: 10, length2: 8, smooth: true },
+                        emphasis: {
+                            label: { fontSize: 13, fontWeight: 'bold' },
+                            itemStyle: { shadowBlur: 12, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.25)' }
+                        },
+                        data: data.map(item => ({ name: item.genre, value: item.count })),
+                        animationDuration: 0,
+                        animationDelay: 0
+                    }]
+                });
+                const ro = new ResizeObserver(() => pieChart.resize());
+                ro.observe(pieDom);
+                pieChart._resizeObserver = ro;
+                if (!window._chartInstances) window._chartInstances = [];
+                window._chartInstances.push(pieChart);
+            }
+
+            const barDom = document.getElementById('genre-bar-chart');
+            if (barDom) {
+                barDom.style.height = '100%';
+                const barChart = echarts.init(barDom);
+                barChart.setOption({
+                    tooltip: { trigger: 'axis', formatter: function(params) {
+                        const p = params[0];
+                        return p.name + '<br/>电影数量：<strong>' + p.value + '</strong> 部';
+                    }},
+                    grid: { left: 90, right: 25, top: 10, bottom: 55 },
+                    xAxis: { type: 'category', data: allGenres, axisLabel: { fontSize: 10, interval: 0, rotate: 45, width: 50, overflow: 'truncate' } },
+                    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }, name: '数量', nameTextStyle: { fontSize: 11 } },
+                    dataZoom: [{ type: 'slider', start: 0, end: 100, height: 24, bottom: 0, borderColor: '#ccc', fillerColor: 'rgba(245, 158, 11, 0.2)', handleStyle: { color: '#f59e0b' } }],
+                    series: [{
+                        type: 'bar',
+                        data: allCounts.map((v) => ({
+                            value: v,
+                            itemStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: '#d97706' },
+                                    { offset: 0.5, color: '#f59e0b' },
+                                    { offset: 1, color: '#fcd34d' }
+                                ]),
+                                borderRadius: [3, 3, 0, 0]
+                            }
+                        })),
+                        barWidth: '25%',
+                        animationDuration: 1200,
+                        animationEasing: 'cubicOut',
+                        animationDelay: function(idx) { return idx * 20; },
+                        label: { show: true, position: 'top', fontSize: 9, color: '#888', formatter: function(p) { return p.value > 0 ? p.value : ''; } }
+                    }]
+                });
+                const ro = new ResizeObserver(() => barChart.resize());
+                ro.observe(barDom);
+                barChart._resizeObserver = ro;
+                if (!window._chartInstances) window._chartInstances = [];
+                window._chartInstances.push(barChart);
+            }
+        }
+
+        function renderGenreStats(data) {
+            const container = document.getElementById('genre-stat-list');
+            container.innerHTML = '';
+            const total = data.reduce((sum, item) => sum + item.count, 0);
+            data.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'stat-item';
+                const pct = ((item.count / total) * 100).toFixed(1);
+                div.innerHTML = '<span class="stat-label">' + (index + 1) + '. ' + item.genre + '</span><span class="stat-value">' + item.count + ' (' + pct + '%)</span>';
+                container.appendChild(div);
+            });
+        }
+
+        async function loadRatingData() {
+            try {
+                const res = await fetch(`${API_BASE}/api/rating-distribution-grouped`);
+                const data = await res.json();
+                if (data.code === 200) { renderRatingChart(data.data); renderRatingStats(data.data); }
+            } catch (error) { console.error('加载评分数据失败:', error); }
+        }
+
+        function renderRatingChart(data) {
+            const ratings = data.map(item => item.rating + '分');
+            const counts = data.map(item => item.count);
+            const maxVal = Math.max(...counts);
+
+            const chartDom = document.getElementById('rating-chart');
+            if (chartDom) {
+                chartDom.style.height = '100%';
+                const chart = echarts.init(chartDom);
+                chart.setOption({
+                    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: function(params) {
+                        const p = params[0];
+                        return '评分：<strong>' + p.name + '</strong><br/>电影数量：<strong>' + p.value + '</strong> 部';
+                    }},
+                    grid: { left: 70, right: 50, top: 10, bottom: 20 },
+                    xAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }, name: '数量', nameTextStyle: { fontSize: 11 }, axisLabel: { fontSize: 11 } },
+                    yAxis: { type: 'category', data: ratings, axisLabel: { fontSize: 11 }, axisLine: { show: true } },
+                    series: [{
+                        type: 'bar',
+                        data: counts.map(value => ({
+                            value: value,
+                            itemStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                    { offset: 0, color: value < maxVal * 0.3 ? '#b8d4fa' : value < maxVal * 0.6 ? '#6a9cf7' : '#4361ee' },
+                                    { offset: 1, color: value === maxVal ? '#1a3a8a' : '#4361ee' }
+                                ]),
+                                borderRadius: [0, 3, 3, 0]
+                            }
+                        })),
+                        barWidth: '40%',
+                        animationDuration: 1200,
+                        animationEasing: 'cubicOut',
+                        animationDelay: function(idx) { return idx * 30; },
+                        label: { show: true, position: 'right', fontSize: 10, color: '#666', formatter: function(p) { return p.value > 0 ? p.value : ''; } }
+                    }]
+                });
+                const ro = new ResizeObserver(() => chart.resize());
+                ro.observe(chartDom);
+                chart._resizeObserver = ro;
+                if (!window._chartInstances) window._chartInstances = [];
+                window._chartInstances.push(chart);
+            }
+        }
+
+        function renderRatingStats(data) {
+            const container = document.getElementById('rating-stat-list');
+            container.innerHTML = '';
+            const total = data.reduce((sum, item) => sum + item.count, 0);
+            data.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'stat-item';
+                const pct = ((item.count / total) * 100).toFixed(1);
+                div.innerHTML = '<span class="stat-label">' + item.rating + ' 分</span><span class="stat-value">' + item.count + ' (' + pct + '%)</span>';
+                container.appendChild(div);
+            });
+        }
+
+        function debounce(fn, delay = 300) {
+            let timer = null;
+            return function(...args) { clearTimeout(timer); timer = setTimeout(() => fn.apply(this, args), delay); };
+        }
+
+        async function initFilters() {
+            try {
+                const res = await fetch(`${API_BASE}/api/filters`);
+                const data = await res.json();
+                if (data.code === 200) {
+                    const rawYears = data.data.years;
+                    const uniqueYears = [...new Set(rawYears.map(y => parseInt(y)))].sort((a, b) => b - a);
+                    renderFilters(uniqueYears, data.data.genres);
+                    fetchMovies(true);
+                }
+            } catch (error) {
+                console.error("加载筛选失败:", error);
+                document.getElementById('movie-list').innerHTML =
+                    '<div class="text-red-500 p-5 w-full text-center">连接后端失败，请确认 python app.py 是否运行</div>';
+            }
+        }
+
+        function renderFilters(years, genres) {
+            const genreContainer = document.getElementById('genre-container');
+            const yearContainer = document.getElementById('year-container');
+            genreContainer.innerHTML = '';
+            yearContainer.innerHTML = '';
+
+            const validGenres = genres.filter(g => g && g.trim() !== '');
+            const uniqueGenres = [...new Set(validGenres)];
+            uniqueGenres.sort((a, b) => a.localeCompare(b, 'zh'));
+
+            const displayGenres = uniqueGenres.slice(0, 30);
+            displayGenres.forEach(g => {
+                if (!g || !g.trim()) return;
+                const btn = document.createElement('button');
+                btn.innerText = g.trim();
+                btn.className = "filter-btn px-2.5 py-1 text-xs rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0";
+                btn.dataset.value = g.trim();
+                btn.onclick = () => toggleFilter('genres', g.trim(), btn);
+                genreContainer.appendChild(btn);
+            });
+
+            const displayYears = years.slice(0, 25);
+            displayYears.forEach(y => {
+                const btn = document.createElement('button');
+                btn.innerText = y;
+                btn.className = "filter-btn px-2.5 py-1 text-xs rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0";
+                btn.dataset.value = y;
+                btn.onclick = () => toggleFilter('years', y, btn);
+                yearContainer.appendChild(btn);
+            });
+        }
+
+        function toggleFilter(type, value, element) {
+            const index = state[type].indexOf(value);
+            if (index > -1) {
+                state[type].splice(index, 1);
+                element.className = "filter-btn px-2.5 py-1 text-xs rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0";
+            } else {
+                state[type].push(value);
+                element.className = "filter-btn px-2.5 py-1 text-xs rounded-full bg-blue-500 text-white border-blue-500 transition-colors flex-shrink-0";
+            }
+            currentPage = 1;
+            hasMore = true;
+            document.getElementById('movie-list').innerHTML = '';
+            fetchMovies(true);
+        }
+
+        async function fetchMovies(reset = false) {
+            if (isLoading) return;
+            if (!hasMore && !reset) return;
+
+            isLoading = true;
+            document.getElementById('loading-more').classList.remove('hidden');
+
+            const params = new URLSearchParams();
+            if (state.genres.length > 0) params.append('genres', state.genres.join(','));
+            if (state.years.length > 0) params.append('years', state.years.join(','));
+            params.append('sort', state.sort);
+            params.append('page', currentPage);
+            params.append('per_page', 24);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/movies?${params.toString()}`);
+                const data = await res.json();
+                if (data.code === 200) {
+                    if (reset) { renderMovies(data.data); } else { appendMovies(data.data); }
+                    totalPages = data.total_pages || 1;
+                    totalMovies = data.total || 0;
+                    hasMore = currentPage < totalPages;
+                    document.getElementById('result-count').innerText = totalMovies + ' 部电影';
+                    currentPage++;
+                }
+            } catch (error) { console.error("加载电影失败:", error); } finally {
+                isLoading = false;
+                document.getElementById('loading-more').classList.add('hidden');
+                if (!hasMore) { document.getElementById('no-more').classList.remove('hidden'); } else { document.getElementById('no-more').classList.add('hidden'); }
+            }
+        }
+
+        function renderMovies(movies) {
+            const container = document.getElementById('movie-list');
+            container.innerHTML = '';
+            appendMovies(movies);
+        }
+
+        function appendMovies(movies) {
+            const container = document.getElementById('movie-list');
+            if (!movies || movies.length === 0) {
+                if (container.children.length === 0) {
+                    container.innerHTML = '<div class="w-full text-center text-gray-500 py-10 col-span-full">没有找到匹配的电影</div>';
+                }
+                return;
+            }
+
+            movies.forEach(movie => {
+                const card = document.createElement('div');
+                card.className = "movie-card w-full max-w-[170px] bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer pb-2 flex-shrink-0";
+                card.onclick = () => openModal(movie.id);
+
+                const imgWrapper = document.createElement('div');
+                imgWrapper.className = "w-full aspect-[2/3] bg-gray-200 relative overflow-hidden flex items-center justify-center";
+
+                const img = document.createElement('img');
+                img.referrerPolicy = "no-referrer";
+                img.className = "w-full h-full object-cover absolute top-0 left-0";
+                img.loading = "lazy";
+
+                img.onload = function() { this.style.display = 'block'; };
+                img.onerror = function() {
+                    this.style.display = 'none';
+                    if (!this.parentElement.querySelector('.placeholder-text')) {
+                        const placeholder = document.createElement('span');
+                        placeholder.className = 'placeholder-text text-gray-400 text-xs';
+                        placeholder.innerText = '无封面';
+                        this.parentElement.appendChild(placeholder);
+                    }
+                };
+
+                if (movie.poster) { img.src = movie.poster; } else {
+                    img.style.display = 'none';
+                    const placeholder = document.createElement('span');
+                    placeholder.className = 'placeholder-text text-gray-400 text-xs';
+                    placeholder.innerText = '无封面';
+                    imgWrapper.appendChild(placeholder);
+                }
+
+                imgWrapper.appendChild(img);
+                card.appendChild(imgWrapper);
+
+                const info = document.createElement('div');
+                info.className = "px-2 pt-1.5";
+
+                const header = document.createElement('div');
+                header.className = "flex justify-between items-start gap-1";
+                const title = document.createElement('h3');
+                title.innerText = movie.title || "未知电影";
+                title.className = "font-medium text-gray-800 text-xs truncate max-w-[65%]";
+                title.title = movie.title || "未知电影";
+
+                const rating = document.createElement('div');
+                rating.className = "flex items-center text-yellow-500 text-xs font-bold flex-shrink-0";
+                rating.innerHTML = movie.rating || 0;
+
+                header.appendChild(title);
+                header.appendChild(rating);
+                info.appendChild(header);
+
+                const yearDiv = document.createElement('div');
+                yearDiv.className = "text-[10px] text-gray-400 mt-0.5";
+                yearDiv.innerText = movie.year ? movie.year.toString().slice(0, 4) : "未知年份";
+                info.appendChild(yearDiv);
+
+                const genresDiv = document.createElement('div');
+                genresDiv.className = "flex flex-wrap gap-0.5 mt-1";
+                if (movie.genres && movie.genres.length > 0) {
+                    movie.genres.slice(0, 2).forEach(g => {
+                        if (g) {
+                            const tag = document.createElement('span');
+                            tag.innerText = g;
+                            tag.className = "text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full";
+                            genresDiv.appendChild(tag);
+                        }
+                    });
+                }
+                info.appendChild(genresDiv);
+                card.appendChild(info);
+                container.appendChild(card);
+            });
+        }
+
+        const scrollContainer = document.getElementById('scroll-container');
+        const handleScroll = debounce(function() {
+            if (this.scrollTop + this.clientHeight >= this.scrollHeight - 150) {
+                if (hasMore && !isLoading) { fetchMovies(false); }
+            }
+        }, 200);
+        scrollContainer.addEventListener('scroll', handleScroll);
+
+        document.getElementById('sort-rating').addEventListener('click', function() {
+            if (state.sort === 'rating') return;
+            state.sort = 'rating';
+            this.className = "px-4 py-1.5 text-sm rounded-full border bg-black text-white border-black transition-colors";
+            document.getElementById('sort-revenue').className = "px-4 py-1.5 text-sm rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors";
+            resetAndFetch();
+        });
+
+        document.getElementById('sort-revenue').addEventListener('click', function() {
+            if (state.sort === 'revenue') return;
+            state.sort = 'revenue';
+            this.className = "px-4 py-1.5 text-sm rounded-full border bg-black text-white border-black transition-colors";
+            document.getElementById('sort-rating').className = "px-4 py-1.5 text-sm rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors";
+            resetAndFetch();
+        });
+
+        function resetAndFetch() {
+            currentPage = 1;
+            hasMore = true;
+            document.getElementById('movie-list').innerHTML = '';
+            fetchMovies(true);
+        }
+
+        let currentMovieId = null;
+
+        function openModal(movieId) {
+            currentMovieId = movieId;
+            const modal = document.getElementById('movie-modal');
+            modal.classList.remove('hidden');
+            modal.classList.remove('closing');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('modal-loading').classList.remove('hidden');
+            document.getElementById('modal-content').classList.add('hidden');
+            const bgBlur = document.getElementById('modal-bg-blur');
+            bgBlur.style.backgroundImage = '';
+            loadMovieDetail(encodeURIComponent(movieId));
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('movie-modal');
+            modal.classList.add('closing');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('closing');
+                document.body.style.overflow = '';
+                currentMovieId = null;
+            }, 250);
+        }
+
+        async function loadMovieDetail(movieId) {
+            try {
+                const detailRes = await fetch(`${API_BASE}/api/movie/${movieId}`);
+                const detailData = await detailRes.json();
+
+                if (detailData.code === 200) {
+                    renderMovieDetail(detailData.data);
+                } else {
+                    document.getElementById('modal-loading').classList.add('hidden');
+                    document.getElementById('modal-content').classList.remove('hidden');
+                    document.getElementById('modal-overview').textContent = '加载失败：' + (detailData.msg || '未知错误');
+                }
+
+                if (detailData.code === 200 && detailData.data) {
+                    const d = detailData.data;
+                    const keywords = generateKeywordsFromMovie(d.genres || [], d.overview || '');
+                    renderWordcloud(keywords);
+                } else {
+                    renderWordcloud(['电影', '精彩', '推荐', '经典', '视觉', '剧情', '演技', '感动', '震撼', '创新']);
+                }
+
+            } catch (error) {
+                console.error('加载电影详情失败:', error);
+                document.getElementById('modal-loading').classList.add('hidden');
+                document.getElementById('modal-content').classList.remove('hidden');
+                document.getElementById('modal-overview').textContent = '加载失败，请稍后重试';
+                renderWordcloud(['电影', '精彩', '推荐', '经典', '视觉', '剧情', '演技', '感动', '震撼', '创新']);
+            }
+        }
+
+        function generateKeywordsFromMovie(genres, overview) {
+            const keywords = [];
+            if (genres && genres.length > 0) {
+                genres.slice(0, 3).forEach(g => {
+                    if (g && !keywords.includes(g)) keywords.push(g);
+                });
+            }
+            if (overview) {
+                const commonWords = ['爱情', '冒险', '奇幻', '科幻', '悬疑', '喜剧', '悲剧', '复仇', '英雄',
+                    '战争', '和平', '自由', '梦想', '勇气', '希望', '命运', '选择', '成长',
+                    '家庭', '友情', '背叛', '救赎', '正义', '邪恶', '动作', '惊悚', '犯罪',
+                    '经典', '视觉', '感动', '震撼', '创新', '艺术', '史诗', '浪漫', '黑暗',
+                    '推理', '侦探', '神秘', '恐怖', '温情', '励志', '治愈', '青春', '热血'];
+                for (const word of commonWords) {
+                    if (overview.includes(word) && !keywords.includes(word) && keywords.length < 10) {
+                        keywords.push(word);
+                    }
+                }
+            }
+            while (keywords.length < 5) {
+                const defaults = ['精彩', '推荐', '经典', '视觉', '剧情'];
+                for (const w of defaults) {
+                    if (!keywords.includes(w) && keywords.length < 10) keywords.push(w);
+                }
+                if (keywords.length >= 10) break;
+            }
+            return keywords.slice(0, 10);
+        }
+
+        function renderMovieDetail(data) {
+            document.getElementById('modal-loading').classList.add('hidden');
+            document.getElementById('modal-content').classList.remove('hidden');
+
+            const bgBlur = document.getElementById('modal-bg-blur');
+            if (data.poster) {
+                bgBlur.style.backgroundImage = `url(${data.poster})`;
+            } else {
+                bgBlur.style.backgroundImage = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
+            }
+
+            const posterImg = document.getElementById('modal-poster');
+            const posterPlaceholder = document.getElementById('poster-placeholder');
+            if (data.poster) {
+                posterImg.src = data.poster;
+                posterImg.style.display = 'block';
+                posterPlaceholder.style.display = 'none';
+            } else {
+                posterImg.style.display = 'none';
+                posterPlaceholder.style.display = 'flex';
+            }
+
+            document.getElementById('modal-title').textContent = data.title || '未知电影';
+            document.getElementById('modal-original-title').textContent = data.original_title || '';
+            document.getElementById('modal-year').textContent = data.year || '未知年份';
+
+            const runtime = data.runtime || 0;
+            let runtimeText = '片长未知';
+            if (runtime > 0 && runtime >= 60) { runtimeText = runtime + ' 分钟'; }
+            document.getElementById('modal-runtime').textContent = runtimeText;
+
+            const rating = data.vote_average || 0;
+            document.getElementById('modal-rating').textContent = '★ ' + rating.toFixed(1);
+            document.getElementById('modal-votes').textContent = '投票数: ' + (data.vote_count || 0);
+
+            const genresContainer = document.getElementById('modal-genres');
+            genresContainer.innerHTML = '';
+            if (data.genres && data.genres.length > 0) {
+                data.genres.forEach(g => {
+                    const tag = document.createElement('span');
+                    tag.className = 'genre-tag';
+                    tag.textContent = g;
+                    genresContainer.appendChild(tag);
+                });
+            }
+
+            document.getElementById('modal-overview').textContent = data.overview || '暂无简介';
+
+            const actorsContainer = document.getElementById('modal-actors');
+            actorsContainer.innerHTML = '';
+            if (data.actors && data.actors.length > 0) {
+                const validActors = data.actors.filter(a => a && a.trim() && a !== '暂无演员信息');
+                if (validActors.length > 0) {
+                    validActors.forEach(actor => {
+                        const tag = document.createElement('span');
+                        tag.className = 'actor-tag';
+                        tag.textContent = actor;
+                        actorsContainer.appendChild(tag);
+                    });
+                } else {
+                    const tag = document.createElement('span');
+                    tag.className = 'text-sm text-white/40';
+                    tag.textContent = '暂无演员信息';
+                    actorsContainer.appendChild(tag);
+                }
+            } else {
+                const tag = document.createElement('span');
+                tag.className = 'text-sm text-white/40';
+                tag.textContent = '暂无演员信息';
+                actorsContainer.appendChild(tag);
+            }
+
+            const revenueEl = document.getElementById('modal-revenue');
+            if (data.revenue && data.revenue > 0) {
+                revenueEl.textContent = '$' + data.revenue.toLocaleString();
+            } else {
+                revenueEl.textContent = '暂无票房';
+            }
+        }
+
+        function renderWordcloud(keywords) {
+            const loadingEl = document.getElementById('wordcloud-loading');
+            if (loadingEl) { loadingEl.classList.add('hidden'); }
+
+            if (!keywords || keywords.length === 0) {
+                keywords = ['电影', '精彩', '推荐', '经典', '视觉', '剧情', '演技', '感动', '震撼', '创新'];
+            }
+
+            keywords = keywords.slice(0, 10);
+
+            const container = document.getElementById('wordcloud-chart');
+            if (!container) return;
+
+            container.innerHTML = '';
+            container.style.minHeight = '80px';
+            container.style.display = 'flex';
+            container.style.flexWrap = 'wrap';
+            container.style.alignItems = 'center';
+            container.style.justifyContent = 'center';
+            container.style.gap = '3px 10px';
+            container.style.padding = '4px 6px';
+            container.style.background = 'var(--wordcloud-bg)';
+
+            const colors = ['#4361ee', '#3a86ff', '#4cc9f0', '#4895ef', '#560bad',
+                           '#7209b7', '#b5179e', '#f72585', '#ff6b6b', '#ff9e00'];
+
+            keywords.forEach((word, index) => {
+                const span = document.createElement('span');
+                span.textContent = word;
+                span.className = 'wordcloud-tag';
+
+                const size = 18 + Math.random() * 20;
+                const color = colors[index % colors.length];
+                const rotation = (Math.random() - 0.5) * 12;
+
+                span.style.fontSize = size + 'px';
+                span.style.color = color;
+                span.style.fontWeight = 500 + Math.floor(Math.random() * 300);
+                span.style.transform = `rotate(${rotation}deg)`;
+
+                span.addEventListener('mouseenter', function() {
+                    this.style.transform = `scale(1.3) rotate(0deg)`;
+                    this.style.color = '#4361ee';
+                });
+                span.addEventListener('mouseleave', function() {
+                    this.style.transform = `rotate(${rotation}deg) scale(1)`;
+                    this.style.color = color;
+                });
+
+                container.appendChild(span);
+            });
+        }
+
+        // ===== 智能助手 =====
+        function sendAgentMessage() {
+            const input = document.getElementById('agentInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+
+            addChatMessage('user', message);
+
+            const loadingId = addTypingIndicator();
+
+            fetch(`${API_BASE}/api/agent/recommend`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                removeTypingIndicator(loadingId);
+
+                if (data.code !== 200) {
+                    addChatMessage('bot', '请求失败：' + (data.msg || '请稍后重试'));
+                    return;
+                }
+
+                if (data.data) {
+                    // 检查是否是预测结果
+                    if (data.data.is_prediction === true || data.data.type === 'prediction') {
+                        // 显示预测结果
+                        if (data.data.prediction) {
+                            addChatMessage('bot', data.data.message || '票房预测结果：');
+                            displayPrediction(data.data.prediction);
+                        } else {
+                            addChatMessage('bot', '预测结果：' + JSON.stringify(data.data));
+                        }
+                    } else {
+                        // 显示推荐结果
+                        addChatMessage('bot', data.data.message || '为您找到以下电影：');
+                        displayRecommendations(data.data.movies, data.data.count);
+                    }
+                }
+            })
+            .catch(error => {
+                removeTypingIndicator(loadingId);
+                addChatMessage('bot', '网络请求失败，请稍后重试');
+                console.error('Error:', error);
+            });
+        }
+
+        function addChatMessage(type, content) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'chat-message ' + type;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = type === 'user' ? '用户' : 'AI';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+
+            div.appendChild(avatar);
+            div.appendChild(contentDiv);
+            container.appendChild(div);
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const container = document.getElementById('chatMessages');
+            const id = 'typing-' + Date.now();
+            const div = document.createElement('div');
+            div.className = 'chat-message bot';
+            div.id = id;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = 'AI';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = `
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+
+            div.appendChild(avatar);
+            div.appendChild(contentDiv);
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+
+            return id;
+        }
+
+        function displayPrediction(prediction) {
+            const container = document.getElementById('recommendResults');
+            const grid = document.getElementById('recommendGrid');
+            const countEl = document.getElementById('resultsCount');
+
+            container.style.display = 'block';
+            countEl.textContent = '票房预测';
+
+            const revenueM = prediction.predicted_revenue_m || 0;
+            const budgetM = (prediction.budget || 0) / 1000000;
+
+            grid.innerHTML = `
+                <div style="grid-column: 1/-1; background: var(--bg-card, #fff); border-radius: 12px; padding: 20px 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+                    <div style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
+                        <div style="flex: 1; min-width: 120px;">
+                            <div style="font-size: 12px; color: #999; margin-bottom: 2px;">电影类型</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #333;">${prediction.genre || '未知'}</div>
+                        </div>
+                        <div style="flex: 1; min-width: 120px;">
+                            <div style="font-size: 12px; color: #999; margin-bottom: 2px;">上映年份</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #333;">${prediction.year || '未知'}</div>
+                        </div>
+                        <div style="flex: 1; min-width: 120px;">
+                            <div style="font-size: 12px; color: #999; margin-bottom: 2px;">预算</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #333;">$${budgetM.toFixed(1)}M</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                        <div style="background: #f0f7ff; border-radius: 8px; padding: 12px 16px; text-align: center;">
+                            <div style="font-size: 11px; color: #888;">预测票房</div>
+                            <div style="font-size: 22px; font-weight: 700; color: #10b981;">$${revenueM.toFixed(1)}M</div>
+                        </div>
+                        <div style="background: #f0f7ff; border-radius: 8px; padding: 12px 16px; text-align: center;">
+                            <div style="font-size: 11px; color: #888;">投资回报率</div>
+                            <div style="font-size: 22px; font-weight: 700; color: ${prediction.roi >= 0 ? '#10b981' : '#ef4444'};">${prediction.roi || 0}%</div>
+                        </div>
+                        <div style="background: #f0f7ff; border-radius: 8px; padding: 12px 16px; text-align: center;">
+                            <div style="font-size: 11px; color: #888;">风险评估</div>
+                            <div style="font-size: 16px; font-weight: 600; color: #555;">${prediction.risk || '未知'}</div>
+                        </div>
+                    </div>
+
+                    <div style="padding: 12px 16px; background: #f5f5f5; border-radius: 8px; font-size: 14px; color: #666;">
+                        ${prediction.detail || prediction.message || ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function removeTypingIndicator(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function displayRecommendations(movies, count) {
+            const container = document.getElementById('recommendResults');
+            const grid = document.getElementById('recommendGrid');
+            const countEl = document.getElementById('resultsCount');
+
+            container.style.display = 'block';
+            countEl.textContent = '共找到 ' + (count || 0) + ' 部';
+
+            if (!movies || movies.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-results" style="grid-column: 1/-1;">
+                        <div class="icon">🔍</div>
+                        <p>没有找到符合您条件的电影，试试换个说法吧</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = movies.map(movie => {
+                const poster = movie.poster_path || '';
+                const title = movie.title || '未知电影';
+                const year = movie.year || '未知';
+                const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '暂无';
+                const genres = movie.genres && movie.genres.length > 0 ? movie.genres.join(' / ') : '';
+                const movieId = movie.id || title + '_' + year;
+
+                return `
+                    <div class="movie-card" onclick="openModal('${encodeURIComponent(movieId)}')">
+                        <img src="${poster}"
+                             alt="${title}"
+                             loading="lazy"
+                             onerror="this.style.display='none';this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:210px;background:#f0f0f0;color:#999;font-size:12px;\\'>无封面</div>'">
+                        <div class="card-info">
+                            <div class="card-title">${title}</div>
+                            <div class="card-meta">
+                                <span>${year}</span>
+                                <span class="card-rating">★ ${rating}</span>
+                            </div>
+                            ${genres ? '<div style="font-size:10px;color:#aaa;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + genres + '</div>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ===== 初始化 =====
+        initTheme();
+        initFilters();
+
+        setTimeout(() => {
+            initSidebarResizer('sidebar-trend', 'resizer-trend');
+            initSidebarResizer('sidebar-revenue', 'resizer-revenue');
+            initSidebarResizer('sidebar-genre', 'resizer-genre');
+            initSidebarResizer('sidebar-rating', 'resizer-rating');
+        }, 300);
+
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (window._chartInstances) {
+                    window._chartInstances.forEach(chart => { try { chart.resize(); } catch(e) {} });
+                }
+            }, 200);
+        });
+
+        document.getElementById('movie-modal').addEventListener('click', function(e) {
+            if (e.target === this) { closeModal(); }
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { closeModal(); }
+        });
+    </script>
+</body>
+</html>
