@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>电影票房评估系统</title>
+    <title>电影票房数据可视化系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js">
     </script>
@@ -74,7 +74,7 @@
         #wordcloud-container { background: var(--wordcloud-bg); }
         .input-wrapper input { background: var(--bg-main); color: var(--text-primary); border-color: var(--input-border); }
         .input-wrapper input:focus { border-color: #4a90d9 !important; }
-        .chat-message.bot .message-content { background: #2d3a4f; color: #e2e8f0; }
+        .chat-message.bot .message-content { background: #e8edf5; color: #1e293b; }
         .chat-message.user .message-content { background: #4a90d9; color: #fff; }
         .movie-card { background: var(--bg-main); box-shadow: var(--card-shadow); }
         .movie-card .card-title { color: var(--text-primary); }
@@ -116,6 +116,121 @@
         [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #475569; }
         [data-theme="dark"] ::-webkit-scrollbar-track { background: #1e293b; }
 
+        /* ===== 智能助手夜间模式适配 ===== */
+        [data-theme="dark"] .chat-message.bot .message-content {
+            background: #2d3a4f;
+            color: #e2e8f0;
+        }
+        [data-theme="dark"] .chat-message.user .message-content {
+            background: #2b6cb0;
+            color: #f0f4ff;
+        }
+        [data-theme="dark"] .chat-message .message-content {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        [data-theme="dark"] .input-wrapper input {
+            background: #1e293b;
+            color: #f1f5f9;
+            border-color: #475569;
+        }
+        [data-theme="dark"] .input-wrapper input:focus {
+            border-color: #4a90d9 !important;
+        }
+        [data-theme="dark"] .input-wrapper input::placeholder {
+            color: #64748b;
+        }
+        [data-theme="dark"] .chat-input-area {
+            border-top-color: #334155;
+        }
+        [data-theme="dark"] .input-hint {
+            color: #94a3b8;
+        }
+        [data-theme="dark"] .recommend-results {
+            border-top-color: #334155;
+        }
+        [data-theme="dark"] .results-title {
+            color: #f1f5f9;
+        }
+        [data-theme="dark"] .results-count {
+            color: #94a3b8;
+            background: #2d3a4f;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card {
+            background: #1e293b;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        [data-theme="dark"] #recommendGrid .movie-card .card-title {
+            color: #f1f5f9;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card .card-meta {
+            color: #94a3b8;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card .card-rating {
+            color: #fbbf24;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card .card-info > div:last-child {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card .placeholder-text {
+            color: #64748b;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+        }
+        [data-theme="dark"] .no-results {
+            color: #94a3b8;
+        }
+        [data-theme="dark"] .typing-indicator span {
+            background: #94a3b8;
+        }
+        [data-theme="dark"] .chat-messages::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        [data-theme="dark"] .chat-messages::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        [data-theme="dark"] #recommendGrid::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        [data-theme="dark"] #recommendGrid::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        /* 预测结果卡片夜间模式 */
+        [data-theme="dark"] #recommendGrid .movie-card > div[style*="grid-column: 1/-1"] {
+            background: #1e293b !important;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card > div[style*="grid-column: 1/-1"] div[style*="color: #333"] {
+            color: #f1f5f9 !important;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card > div[style*="grid-column: 1/-1"] div[style*="color: #666"] {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card > div[style*="grid-column: 1/-1"] div[style*="background: #f0f7ff"] {
+            background: #2d3a4f !important;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card > div[style*="grid-column: 1/-1"] div[style*="background: #f0f7ff"] div[style*="color: #888"] {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card > div[style*="grid-column: 1/-1"] div[style*="background: #f5f5f5"] {
+            background: #2d3a4f !important;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card > div[style*="grid-column: 1/-1"] div[style*="background: #f5f5f5"] div[style*="color: #666"] {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card > div[style*="grid-column: 1/-1"] div[style*="color: #555"] {
+            color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card > div[style*="grid-column: 1/-1"] div[style*="background: #f0f7ff"] div[style*="color: #10b981"] {
+            color: #34d399 !important;
+        }
+        [data-theme="dark"] #recommendGrid .movie-card > div[style*="grid-column: 1/-1"] div[style*="background: #f0f7ff"] div[style*="color: #ef4444"] {
+            color: #f87171 !important;
+        }
+
+
+        
         /* 保持原有其他样式 */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -712,7 +827,7 @@
 
     <aside class="w-48 bg-slate-800 text-white flex flex-col shadow-lg flex-shrink-0">
         <div class="p-6 text-xl font-bold border-b border-slate-700 flex items-center gap-2">
-            电影系统
+            Movies-Box
         </div>
         <nav class="flex-1 p-4 space-y-2">
             <div id="nav-overview" class="nav-item active bg-slate-700 p-3 rounded font-semibold flex items-center gap-2">
@@ -982,12 +1097,22 @@
             const newTheme = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', newTheme);
             document.getElementById('themeLabel').textContent = newTheme === 'dark' ? '日间' : '夜间';
-            // 保存偏好
             localStorage.setItem('theme', newTheme);
-            // 重新调整图表颜色（简略重绘，由resize触发）
             setTimeout(() => {
                 if (window._chartInstances) {
                     window._chartInstances.forEach(chart => { try { chart.resize(); } catch(e) {} });
+                }
+                // 重新渲染预测卡片（如果有的话）
+                const recommendGrid = document.getElementById('recommendGrid');
+                if (recommendGrid && recommendGrid.children.length > 0) {
+                    // 如果当前显示的是预测结果，重新调用显示函数
+                    const countEl = document.getElementById('resultsCount');
+                    if (countEl && countEl.textContent === '票房预测') {
+                        // 从全局保存的预测数据重新渲染
+                        if (window._lastPrediction) {
+                            displayPrediction(window._lastPrediction);
+                        }
+                    }
                 }
             }, 100);
         }
@@ -2136,6 +2261,7 @@
         }
 
         function displayPrediction(prediction) {
+            window._lastPrediction = prediction;
             const container = document.getElementById('recommendResults');
             const grid = document.getElementById('recommendGrid');
             const countEl = document.getElementById('resultsCount');
@@ -2146,39 +2272,55 @@
             const revenueM = prediction.predicted_revenue_m || 0;
             const budgetM = (prediction.budget || 0) / 1000000;
 
+            // 判断当前主题
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+            // 根据主题设置颜色
+            const cardBg = isDark ? '#1e293b' : '#ffffff';
+            const cardShadow = isDark ? '0 2px 12px rgba(0,0,0,0.6)' : '0 2px 12px rgba(0,0,0,0.08)';
+            const labelColor = isDark ? '#94a3b8' : '#999';
+            const valueColor = isDark ? '#f1f5f9' : '#333';
+            const statBg = isDark ? '#2d3a4f' : '#f0f7ff';
+            const statLabelColor = isDark ? '#94a3b8' : '#888';
+            const detailBg = isDark ? '#2d3a4f' : '#f5f5f5';
+            const detailColor = isDark ? '#94a3b8' : '#666';
+            const riskColor = isDark ? '#cbd5e1' : '#555';
+            const revenueColor = isDark ? '#34d399' : '#10b981';
+            const roiColor = prediction.roi >= 0 ? (isDark ? '#34d399' : '#10b981') : (isDark ? '#f87171' : '#ef4444');
+
             grid.innerHTML = `
-                <div style="grid-column: 1/-1; background: var(--bg-card, #fff); border-radius: 12px; padding: 20px 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+                <div style="grid-column: 1/-1; background: ${cardBg}; border-radius: 12px; padding: 20px 24px; box-shadow: ${cardShadow}; transition: background 0.3s, color 0.3s;">
                     <div style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
                         <div style="flex: 1; min-width: 120px;">
-                            <div style="font-size: 12px; color: #999; margin-bottom: 2px;">电影类型</div>
-                            <div style="font-size: 18px; font-weight: 700; color: #333;">${prediction.genre || '未知'}</div>
+                            <div style="font-size: 12px; color: ${labelColor}; margin-bottom: 2px;">电影类型</div>
+                            <div style="font-size: 18px; font-weight: 700; color: ${valueColor};">${prediction.genre || '未知'}</div>
                         </div>
                         <div style="flex: 1; min-width: 120px;">
-                            <div style="font-size: 12px; color: #999; margin-bottom: 2px;">上映年份</div>
-                            <div style="font-size: 18px; font-weight: 700; color: #333;">${prediction.year || '未知'}</div>
+                            <div style="font-size: 12px; color: ${labelColor}; margin-bottom: 2px;">上映年份</div>
+                            <div style="font-size: 18px; font-weight: 700; color: ${valueColor};">${prediction.year || '未知'}</div>
                         </div>
                         <div style="flex: 1; min-width: 120px;">
-                            <div style="font-size: 12px; color: #999; margin-bottom: 2px;">预算</div>
-                            <div style="font-size: 18px; font-weight: 700; color: #333;">$${budgetM.toFixed(1)}M</div>
+                            <div style="font-size: 12px; color: ${labelColor}; margin-bottom: 2px;">预算</div>
+                            <div style="font-size: 18px; font-weight: 700; color: ${valueColor};">$${budgetM.toFixed(1)}M</div>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 12px;">
-                        <div style="background: #f0f7ff; border-radius: 8px; padding: 12px 16px; text-align: center;">
-                            <div style="font-size: 11px; color: #888;">预测票房</div>
-                            <div style="font-size: 22px; font-weight: 700; color: #10b981;">$${revenueM.toFixed(1)}M</div>
+                        <div style="background: ${statBg}; border-radius: 8px; padding: 12px 16px; text-align: center;">
+                            <div style="font-size: 11px; color: ${statLabelColor};">预测票房</div>
+                            <div style="font-size: 22px; font-weight: 700; color: ${revenueColor};">$${revenueM.toFixed(1)}M</div>
                         </div>
-                        <div style="background: #f0f7ff; border-radius: 8px; padding: 12px 16px; text-align: center;">
-                            <div style="font-size: 11px; color: #888;">投资回报率</div>
-                            <div style="font-size: 22px; font-weight: 700; color: ${prediction.roi >= 0 ? '#10b981' : '#ef4444'};">${prediction.roi || 0}%</div>
+                        <div style="background: ${statBg}; border-radius: 8px; padding: 12px 16px; text-align: center;">
+                            <div style="font-size: 11px; color: ${statLabelColor};">投资回报率</div>
+                            <div style="font-size: 22px; font-weight: 700; color: ${roiColor};">${prediction.roi || 0}%</div>
                         </div>
-                        <div style="background: #f0f7ff; border-radius: 8px; padding: 12px 16px; text-align: center;">
-                            <div style="font-size: 11px; color: #888;">风险评估</div>
-                            <div style="font-size: 16px; font-weight: 600; color: #555;">${prediction.risk || '未知'}</div>
+                        <div style="background: ${statBg}; border-radius: 8px; padding: 12px 16px; text-align: center;">
+                            <div style="font-size: 11px; color: ${statLabelColor};">风险评估</div>
+                            <div style="font-size: 16px; font-weight: 600; color: ${riskColor};">${prediction.risk || '未知'}</div>
                         </div>
                     </div>
 
-                    <div style="padding: 12px 16px; background: #f5f5f5; border-radius: 8px; font-size: 14px; color: #666;">
+                    <div style="padding: 12px 16px; background: ${detailBg}; border-radius: 8px; font-size: 14px; color: ${detailColor};">
                         ${prediction.detail || prediction.message || ''}
                     </div>
                 </div>
