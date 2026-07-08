@@ -662,7 +662,6 @@ def get_movie_detail(movie_id):
                 票房 AS revenue,
                 片长 AS runtime,
                 评分 AS vote_average,
-                投票数 AS vote_count,
                 类型_标准化 AS genres,
                 简介 AS overview,
                 poster_url AS poster_path,

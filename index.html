@@ -1053,7 +1053,6 @@
                                 <span id="modal-year" class="info-tag"></span>
                                 <span id="modal-runtime" class="info-tag"></span>
                                 <span id="modal-rating" class="rating-badge">★ 0</span>
-                                <span id="modal-votes" class="text-sm text-white/40">投票数: 0</span>
                             </div>
                             <div id="modal-genres" class="flex flex-wrap gap-1.5 mb-2"></div>
                             <div class="mb-2">
@@ -2059,7 +2058,6 @@
 
             const rating = data.vote_average || 0;
             document.getElementById('modal-rating').textContent = '★ ' + rating.toFixed(1);
-            document.getElementById('modal-votes').textContent = '投票数: ' + (data.vote_count || 0);
 
             const genresContainer = document.getElementById('modal-genres');
             genresContainer.innerHTML = '';
